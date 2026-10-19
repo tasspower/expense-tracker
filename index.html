@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Expense Tracker - ระบบบันทึกรายจ่ายประจำวัน</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Google Fonts: Prompt -->
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+  <!-- Main Navigation Bar -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-sky-100">
+          <i class="fa-solid fa-wallet"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-slate-900 leading-tight">Expense Tracker</h1>
+          <p class="text-xs text-slate-500">ระบบบันทึกรายจ่ายประจำวัน</p>
+        </div>
+      </div>
+      
+      <!-- User Profile & Logout -->
+      <div id="user-nav" class="hidden items-center gap-4">
+        <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+          <i class="fa-solid fa-circle-user text-sky-600 text-lg"></i>
+          <span id="display-username" class="text-sm font-semibold text-slate-700">ผู้ใช้งาน</span>
+        </div>
+        <button onclick="logout()" class="text-sm text-slate-500 hover:text-red-600 font-medium transition flex items-center gap-1">
+          <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Login / Register Card Container (Centered) -->
+  <div id="auth-container" class="flex-1 flex items-center justify-center p-4 my-8">
+    <div class="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+      
+      <!-- Auth Header -->
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl shadow-inner">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2 id="auth-title" class="text-2xl font-bold text-slate-900">เข้าสู่ระบบ</h2>
+        <p id="auth-subtitle" class="text-sm text-slate-500 mt-1">จัดการรายจ่ายประจำวันของคุณอย่างเป็นระบบ</p>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">ชื่อผู้ใช้ (Username)</label>
+          <input type="text" id="auth-username" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition text-sm" placeholder="กรอกชื่อผู้ใช้">
+        </div>
+
+        <div id="email-field" class="hidden">
+          <label class="block text-sm font-semibold text-slate-700 mb-1">อีเมล (Email)</label>
+          <input type="email" id="auth-email" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition text-sm" placeholder="example@email.com">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">รหัสผ่าน (Password)</label>
+          <input type="password" id="auth-password" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition text-sm" placeholder="••••••••">
+        </div>
+
+        <button type="submit" id="auth-submit-btn" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-md transition transform active:scale-98 text-sm">
+          เข้าสู่ระบบ
+        </button>
+      </form>
+
+      <!-- Toggle Mode -->
+      <div class="text-center mt-4">
+        <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-sm text-sky-600 hover:underline font-semibold">
+          ยังไม่มีบัญชี? สมัครสมาชิกที่นี่
+        </button>
+      </div>
+
+      <!-- Divider -->
+      <div class="relative my-6">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200"></div></div>
+        <div class="relative flex justify-center text-xs uppercase"><span class="bg-white px-3 text-slate-400 font-medium">หรือเข้าสู่ระบบด้วย</span></div>
+      </div>
+
+      <!-- OAuth Buttons -->
+      <div class="space-y-3">
+        <a href="/auth/github" class="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 text-white py-3 px-4 rounded-xl transition shadow-sm font-medium text-sm">
+          <i class="fa-brands fa-github text-lg"></i>
+          <span>Sign in with GitHub</span>
+        </a>
+        <a href="/auth/google" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 py-3 px-4 rounded-xl transition shadow-sm font-medium text-sm">
+          <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Sign in with Google</span>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Dashboard Main Screen (Hidden by default) -->
+  <main id="dashboard-container" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Top Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-gradient-to-br from-sky-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-sky-100 flex items-center justify-between">
+        <div>
+          <p class="text-sky-100 text-sm font-medium">รวมยอดรายจ่ายทั้งหมด</p>
+          <h3 class="text-3xl font-bold mt-1" id="stat-total-amount">฿0.00</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl">
+          <i class="fa-solid fa-coins"></i>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-slate-500 text-sm font-medium">จำนวนรายการทั้งหมด</p>
+          <h3 class="text-3xl font-bold text-slate-800 mt-1" id="stat-total-count">0 รายการ</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 text-2xl">
+          <i class="fa-solid fa-list-check"></i>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-slate-500 text-sm font-medium">หมวดหมู่ใช้จ่ายสูงสุด</p>
+          <h3 class="text-2xl font-bold text-slate-800 mt-1" id="stat-top-category">-</h3>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-2xl">
+          <i class="fa-solid fa-chart-pie"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart & Controls Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Pie Chart Card -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie text-sky-500"></i> สัดส่วนรายจ่ายตามหมวดหมู่
+        </h3>
+        <div class="relative h-64 flex items-center justify-center">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Action & Search Bar Card -->
+      <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+            <i class="fa-solid fa-filter text-indigo-500"></i> ค้นหาและกรองรายการ
+          </h3>
+          <button onclick="openAddModal()" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> เพิ่มรายการรายจ่าย
+          </button>
+        </div>
+
+        <!-- Search Controls (คำค้นหา, หมวดหมู่, ตั้งแต่วันที่, ถึงวันที่) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">คำค้นหา / โน้ต</label>
+            <input type="text" id="filter-search" placeholder="พิมพ์ชื่อรายการ..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">หมวดหมู่</label>
+            <select id="filter-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-sky-500">
+              <option value="ทั้งหมด">ทั้งหมด</option>
+              <option value="อาหาร">🍔 อาหาร</option>
+              <option value="เดินทาง">🚗 เดินทาง</option>
+              <option value="ช้อปปิ้ง">🛍️ ช้อปปิ้ง</option>
+              <option value="ค่าน้ำค่าน้ำไฟ">💡 ค่าน้ำค่าน้ำไฟ</option>
+              <option value="บันเทิง">🎬 บันเทิง</option>
+              <option value="อื่นๆ">📦 อื่นๆ</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">ตั้งแต่วันที่</label>
+            <input type="date" id="filter-start-date" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">ถึงวันที่</label>
+            <input type="date" id="filter-end-date" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="resetFilters()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-medium transition">
+            <i class="fa-solid fa-rotate"></i> ล้างการค้นหา
+          </button>
+          <button onclick="loadExpenses()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition shadow-sm">
+            <i class="fa-solid fa-magnifying-glass"></i> กรองข้อมูล
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expenses Table Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 text-lg">รายการรายจ่ายทั้งหมด</h3>
+        <span id="table-count-badge" class="text-xs bg-sky-50 text-sky-600 border border-sky-200 font-semibold px-2.5 py-1 rounded-full">0 รายการ</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200">
+              <th class="p-4">วันที่</th>
+              <th class="p-4">รายการ</th>
+              <th class="p-4">หมวดหมู่</th>
+              <th class="p-4">จำนวนเงิน</th>
+              <th class="p-4">หมายเหตุ</th>
+              <th class="p-4 text-center">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="expense-tbody" class="divide-y divide-slate-100 text-sm">
+            <!-- Rows generated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+    Expense Tracker System © 2026 — Developed for Project Presentation
+  </footer>
+
+  <!-- Add / Edit Expense Modal -->
+  <div id="expense-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="modal-title" class="font-bold text-lg text-slate-900">เพิ่มรายการรายจ่าย</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+
+      <form id="expense-form" onsubmit="handleExpenseSubmit(event)" class="space-y-3">
+        <input type="hidden" id="modal-expense-id">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อรายการ *</label>
+          <input type="text" id="modal-title-input" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="เช่น ค่าข้าวเช้า">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">จำนวนเงิน (บาท) *</label>
+          <input type="number" step="0.01" min="0.01" id="modal-amount-input" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="0.00">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">หมวดหมู่ *</label>
+          <select id="modal-category-input" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+            <option value="อาหาร">🍔 อาหาร</option>
+            <option value="เดินทาง">🚗 เดินทาง</option>
+            <option value="ช้อปปิ้ง">🛍️ ช้อปปิ้ง</option>
+            <option value="ค่าน้ำค่าน้ำไฟ">💡 ค่าน้ำค่าน้ำไฟ</option>
+            <option value="บันเทิง">🎬 บันเทิง</option>
+            <option value="อื่นๆ">📦 อื่นๆ</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">วันที่ *</label>
+          <input type="date" id="modal-date-input" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">หมายเหตุ</label>
+          <input type="text" id="modal-note-input" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="โน้ตเพิ่มเติม (ถ้ามี)">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-4 border-t border-slate-100">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-medium">ยกเลิก</button>
+          <button type="submit" class="px-5 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-sm font-semibold shadow-md">บันทึกรายการ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    let isRegisterMode = false;
+    let categoryChart = null;
+
+    window.onload = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      const username = urlParams.get('username');
+
+      if (token) {
+        localStorage.setItem('token', token);
+        if (username) localStorage.setItem('username', username);
+        window.history.replaceState({}, document.title, "/");
+      }
+
+      checkAuth();
+    };
+
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const username = localStorage.getItem('username') || 'ผู้ใช้งาน';
+
+      if (token) {
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('dashboard-container').classList.remove('hidden');
+        document.getElementById('dashboard-container').classList.add('block');
+        document.getElementById('user-nav').classList.remove('hidden');
+        document.getElementById('user-nav').classList.add('flex');
+        document.getElementById('display-username').innerText = username;
+        
+        const today = new Date().toISOString().substring(0, 10);
+        if (document.getElementById('modal-date-input')) {
+          document.getElementById('modal-date-input').value = today;
+        }
+        
+        loadExpenses();
+      } else {
+        document.getElementById('auth-container').classList.remove('hidden');
+        document.getElementById('dashboard-container').classList.add('hidden');
+        document.getElementById('user-nav').classList.add('hidden');
+      }
+    }
+
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('auth-title').innerText = isRegisterMode ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ';
+      document.getElementById('auth-subtitle').innerText = isRegisterMode ? 'สร้างบัญชีใหม่เพื่อเริ่มบันทึกรายจ่าย' : 'จัดการรายจ่ายประจำวันของคุณอย่างเป็นระบบ';
+      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ';
+      document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? สมัครสมาชิกที่นี่';
+      
+      if (isRegisterMode) {
+        document.getElementById('email-field').classList.remove('hidden');
+      } else {
+        document.getElementById('email-field').classList.add('hidden');
+      }
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      const username = document.getElementById('auth-username').value;
+      const password = document.getElementById('auth-password').value;
+      const email = document.getElementById('auth-email').value;
+
+      const endpoint = isRegisterMode ? '/api/register' : '/api/login';
+      const body = isRegisterMode ? { username, password, email } : { username, password };
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.detail || 'เกิดข้อผิดพลาด');
+
+        if (isRegisterMode) {
+          Swal.fire('สำเร็จ!', 'สมัครสมาชิกเรียบร้อยแล้ว กรุณาเข้าสู่ระบบ', 'success');
+          toggleAuthMode();
+        } else {
+          localStorage.setItem('token', data.access_token);
+          localStorage.setItem('username', data.username);
+          Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ', timer: 1200, showConfirmButton: false });
+          checkAuth();
+        }
+      } catch (err) {
+        Swal.fire('ข้อผิดพลาด', err.message, 'error');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      checkAuth();
+    }
+
+    async function loadExpenses() {
+      const token = localStorage.getItem('token');
+      const search = document.getElementById('filter-search').value;
+      const category = document.getElementById('filter-category').value;
+      const startDate = document.getElementById('filter-start-date').value;
+      const endDate = document.getElementById('filter-end-date').value;
+
+      let url = `/api/expenses?token=${token}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (category) url += `&category=${encodeURIComponent(category)}`;
+      if (startDate) url += `&start_date=${startDate}`;
+      if (endDate) url += `&end_date=${endDate}`;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('ไม่สามารถดึงข้อมูลได้');
+        const expenses = await res.json();
+
+        renderTable(expenses);
+        updateSummary(expenses);
+        updateChart(expenses);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function resetFilters() {
+      document.getElementById('filter-search').value = '';
+      document.getElementById('filter-category').value = 'ทั้งหมด';
+      document.getElementById('filter-start-date').value = '';
+      document.getElementById('filter-end-date').value = '';
+      loadExpenses();
+    }
+
+    function getCategoryBadge(category) {
+      const badges = {
+        'อาหาร': 'bg-emerald-50 text-emerald-600 border-emerald-200',
+        'เดินทาง': 'bg-sky-50 text-sky-600 border-sky-200',
+        'ช้อปปิ้ง': 'bg-amber-50 text-amber-600 border-amber-200',
+        'ค่าน้ำค่าน้ำไฟ': 'bg-rose-50 text-rose-600 border-rose-200',
+        'บันเทิง': 'bg-purple-50 text-purple-600 border-purple-200',
+        'อื่นๆ': 'bg-slate-100 text-slate-600 border-slate-200'
+      };
+      const style = badges[category] || badges['อื่นๆ'];
+      return `<span class="px-2.5 py-1 rounded-lg border text-xs font-semibold ${style}">${category}</span>`;
+    }
+
+    function renderTable(expenses) {
+      const tbody = document.getElementById('expense-tbody');
+      tbody.innerHTML = '';
+
+      document.getElementById('table-count-badge').innerText = `${expenses.length} รายการ`;
+
+      if (expenses.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">ไม่พบรายการรายจ่าย</td></tr>`;
+        return;
+      }
+
+      expenses.forEach(exp => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
+        tr.innerHTML = `
+          <td class="p-4 text-slate-500 font-medium">${exp.date}</td>
+          <td class="p-4 font-semibold text-slate-800">${exp.title}</td>
+          <td class="p-4">${getCategoryBadge(exp.category)}</td>
+          <td class="p-4 font-bold text-slate-900">฿${exp.amount.toLocaleString('th-TH', {minimumFractionDigits: 2})}</td>
+          <td class="p-4 text-slate-400 text-xs">${exp.note || '-'}</td>
+          <td class="p-4 text-center space-x-2">
+            <button onclick="openEditModal(${exp.id}, '${exp.title}', ${exp.amount}, '${exp.category}', '${exp.date}', '${exp.note || ''}')" class="text-sky-600 hover:text-sky-800 font-medium text-xs px-2 py-1 rounded hover:bg-sky-50">
+              <i class="fa-solid fa-pen-to-square"></i> แก้ไข
+            </button>
+            <button onclick="deleteExpense(${exp.id})" class="text-rose-500 hover:text-rose-700 font-medium text-xs px-2 py-1 rounded hover:bg-rose-50">
+              <i class="fa-solid fa-trash"></i> ลบ
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateSummary(expenses) {
+      const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+      document.getElementById('stat-total-amount').innerText = `฿${totalAmount.toLocaleString('th-TH', {minimumFractionDigits: 2})}`;
+      document.getElementById('stat-total-count').innerText = `${expenses.length} รายการ`;
+
+      const catMap = {};
+      expenses.forEach(exp => {
+        catMap[exp.category] = (catMap[exp.category] || 0) + exp.amount;
+      });
+
+      let topCat = '-';
+      let maxVal = 0;
+      for (const [cat, val] of Object.entries(catMap)) {
+        if (val > maxVal) {
+          maxVal = val;
+          topCat = cat;
+        }
+      }
+      document.getElementById('stat-top-category').innerText = topCat;
+    }
+
+    function updateChart(expenses) {
+      const catMap = {};
+      expenses.forEach(exp => {
+        catMap[exp.category] = (catMap[exp.category] || 0) + exp.amount;
+      });
+
+      const labels = Object.keys(catMap);
+      const data = Object.values(catMap);
+
+      const ctx = document.getElementById('categoryChart').getContext('2d');
+      if (categoryChart) categoryChart.destroy();
+
+      categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: ['#10B981', '#0EA5E9', '#F59E0B', '#F43F5E', '#A855F7', '#64748B']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function openAddModal() {
+      document.getElementById('modal-title').innerText = 'เพิ่มรายการรายจ่าย';
+      document.getElementById('modal-expense-id').value = '';
+      document.getElementById('modal-title-input').value = '';
+      document.getElementById('modal-amount-input').value = '';
+      document.getElementById('modal-category-input').value = 'อาหาร';
+      document.getElementById('modal-date-input').value = new Date().toISOString().substring(0, 10);
+      document.getElementById('modal-note-input').value = '';
+      document.getElementById('expense-modal').classList.remove('hidden');
+    }
+
+    function openEditModal(id, title, amount, category, date, note) {
+      document.getElementById('modal-title').innerText = 'แก้ไขรายการรายจ่าย';
+      document.getElementById('modal-expense-id').value = id;
+      document.getElementById('modal-title-input').value = title;
+      document.getElementById('modal-amount-input').value = amount;
+      document.getElementById('modal-category-input').value = category;
+      document.getElementById('modal-date-input').value = date;
+      document.getElementById('modal-note-input').value = note;
+      document.getElementById('expense-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('expense-modal').classList.add('hidden');
+    }
+
+    async function handleExpenseSubmit(e) {
+      e.preventDefault();
+      const token = localStorage.getItem('token');
+      const id = document.getElementById('modal-expense-id').value;
+      
+      const payload = {
+        title: document.getElementById('modal-title-input').value,
+        amount: parseFloat(document.getElementById('modal-amount-input').value),
+        category: document.getElementById('modal-category-input').value,
+        date: document.getElementById('modal-date-input').value,
+        note: document.getElementById('modal-note-input').value
+      };
+
+      const url = id ? `/api/expenses/${id}?token=${token}` : `/api/expenses?token=${token}`;
+      const method = id ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error('ไม่สามารถบันทึกข้อมูลได้');
+
+        closeModal();
+        Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1000, showConfirmButton: false });
+        loadExpenses();
+      } catch (err) {
+        Swal.fire('ข้อผิดพลาด', err.message, 'error');
+      }
+    }
+
+    async function deleteExpense(id) {
+      const result = await Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: "รายการนี้จะถูกลบออกจากระบบอย่างถาวร",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#F43F5E',
+        cancelButtonColor: '#64748B',
+        confirmButtonText: 'ใช่, ลบเลย',
+        cancelButtonText: 'ยกเลิก'
+      });
+
+      if (result.isConfirmed) {
+        const token = localStorage.getItem('token');
+        try {
+          const res = await fetch(`/api/expenses/${id}?token=${token}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('ไม่สามารถลบรายการได้');
+
+          Swal.fire({ icon: 'success', title: 'ลบรายการสำเร็จ', timer: 1000, showConfirmButton: false });
+          loadExpenses();
+        } catch (err) {
+          Swal.fire('ข้อผิดพลาด', err.message, 'error');
+        }
+      }
+    }
+  </script>
+</body>
+</html>
